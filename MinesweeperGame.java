@@ -2,7 +2,6 @@ package com.codegym.games.minesweeper;
 
 import com.codegym.engine.cell.Color;
 import com.codegym.engine.cell.Game;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,6 +14,8 @@ public class MinesweeperGame extends Game {
     private static final String FLAG = "\\uD83D\\uDEA9";
     private int countFlags;
     private boolean isGameStopped;
+    private int countClosedTiles = SIDE * SIDE;
+    private int score;
 
     @Override
     public void initialize() {
@@ -31,17 +32,32 @@ public class MinesweeperGame extends Game {
                 }
                 gameField[y][x] = new GameObject(x, y, isMine);
                 setCellColor(x, y, Color.ORANGE);
+                setCellValue(x, y, "");
             }
         }
         countMineNeighbors();
         countFlags = countMinesOnField;
-        isGameStopped = false;
     }
 
     private void gameOver(){
         showMessageDialog(Color.WHITE, "GAME OVER", Color.BLACK, 50);
         isGameStopped = true;
     }
+
+    private void win(){
+        showMessageDialog(Color.WHITE, "YOU WIN", Color.VIOLET, 50);
+        isGameStopped = true;
+    }
+
+    private void restart(){
+        isGameStopped = false;
+        countClosedTiles = SIDE * SIDE;
+        countMinesOnField = 0;
+        score = 0;
+        setScore(0);
+        createGame();
+    }
+
     private List<GameObject> getNeighbors(GameObject gameObject) {
         List<GameObject> result = new ArrayList<>();
         for (int y = gameObject.y - 1; y <= gameObject.y + 1; y++) {
@@ -77,7 +93,11 @@ public class MinesweeperGame extends Game {
 
     @Override
     public void onMouseLeftClick(int x, int y) {
-        openTile(x, y);
+        if (isGameStopped){
+            restart();
+        } else {
+            openTile(x, y);
+        }
     }
 
     @Override
@@ -112,6 +132,10 @@ public class MinesweeperGame extends Game {
     private void openTile(int x, int y){
         GameObject thisField = gameField[y][x];
 
+        if (isGameStopped) return;
+
+        if (thisField.isFlag) return;
+        
         if (thisField.isOpen) return;
 
         if (thisField.isMine){
@@ -119,7 +143,9 @@ public class MinesweeperGame extends Game {
             gameOver();
         } else {
             thisField.isOpen = true;
-
+            --countClosedTiles;
+            score += 5;
+            setScore(score);
             if (thisField.countMineNeighbors != 0){
                 setCellNumber(x, y, thisField.countMineNeighbors);
             } else {
@@ -127,6 +153,9 @@ public class MinesweeperGame extends Game {
                 for (GameObject gameObject : getNeighbors(thisField)){
                     openTile(gameObject.x, gameObject.y);
                 }
+            }
+            if (countClosedTiles == countMinesOnField){
+                win();
             }
         }
         thisField.isOpen = true;
